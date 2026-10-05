@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro Hot Wheels</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #666666;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      width: 700px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Logo superior */
+    .header {
+      grid-column: 1 / -1;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .header img {
+      max-width: 250px;
+    }
+
+    /* Formulário do lado esquerdo */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-control {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-control label {
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .form-control input {
+      height: 38px;
+      border: none;
+      border-radius: 4px;
+      padding: 0 10px;
+      font-size: 16px;
+    }
+
+    /* Lado direito - Moldura da Foto e Botões */
+    .right-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Quadro da foto com cantos arredondados e botão oculto */
+    .quadro-imagem {
+      position: relative;
+      width: 320px;
+      height: 200px;
+      background-color: #d1e8ff;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #ffffff;
+    }
+
+    .quadro-imagem img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #inputFoto {
+      display: none;
+    }
+
+    .area-upload {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .area-upload:hover {
+      opacity: 1;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .area-upload span {
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 6px;
+    }
+
+    /* Barra de Botões de Ação (Ícones) */
+    .botoes-acao {
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 32px;
+      padding: 5px;
+      transition: transform 0.1s ease;
+    }
+
+    .btn-icon:hover {
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Cabeçalho com Logo -->
+    <div class="header">
+      <img src="C:\Users\andre\Documents\Projeto CRUD Hotwhells\uploads\logo.png" alt="Hot Wheels Logo">
+    </div>
+
+    <!-- Inputs do lado esquerdo -->
+    <div class="form-group">
+      <div class="form-control">
+        <label for="codigo">código</label>
+        <input type="text" id="codigo" placeholder="Gerado automaticamente" />
+      </div>
+      <div class="form-control">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" />
+      </div>
+      <div class="form-control">
+        <label for="cor">Cor</label>
+        <input type="text" id="cor" />
+      </div>
+      <div class="form-control">
+        <label for="ano">ano</label>
+        <input type="number" id="ano" />
+      </div>
+      <div class="form-control">
+        <label for="tipo">tipo</label>
+        <input type="text" id="tipo" />
+      </div>
+    </div>
+
+    <!-- Foto + Botões do lado direito -->
+    <div class="right-side">
+      <!-- Moldura da Imagem -->
+      <div class="quadro-imagem">
+        <img id="preview" src="https://via.placeholder.com/320x200?text=Sem+Foto"/>
+        <label for="inputFoto" class="area-upload">
+          <span>Selecionar Imagem</span>
+          <input type="file" id="inputFoto" accept="image/*" onchange="previewImagem(event)" />
+        </label>
+      </div>
+
+      <!-- Ícones dos Botões de Ação -->
+      <div class="botoes-acao">
+        <!-- 💾 Salvar -->
+        <button class="btn-icon" onclick="salvarCarrinho()" title="Salvar">💾</button>
+        <!-- 🔄 Atualizar -->
+        <button class="btn-icon" onclick="atualizarCarrinho()" title="Atualizar">🔄</button>
+        <!-- 🔍 Buscar -->
+        <button class="btn-icon" onclick="buscarCarrinho()" title="Buscar">🔍</button>
+        <!-- 🗑️ Deletar -->
+        <button class="btn-icon" onclick="deletarCarrinho()" title="Excluir">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let urlImagemAtual = '';
+
+    // Pré-visualiza a foto escolhida no quadro azul
+    function previewImagem(event) {
+      const file = event.target.files[0];
+      if (file) {
+        document.getElementById('preview').src = URL.createObjectURL(file);
+      }
+    }
+
+    // Auxiliar para enviar imagem ao backend
+    async function uploadFotoSeExiste() {
+      const fileInput = document.getElementById('inputFoto');
+      if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('imagem', fileInput.files[0]);
+
+        const res = await fetch(`${API_URL}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        return data.url;
+      }
+      return urlImagemAtual;
+    }
+
+    // 💾 SALVAR (CREATE)
+    async function salvarCarrinho() {
+      try {
+        const fotoUrl = await uploadFotoSeExiste();
+
+        const carrinho = {
+          nome: document.getElementById('nome').value,
+          cor: document.getElementById('cor').value,
+          ano: document.getElementById('ano').value,
+          tipo: document.getElementById('tipo').value,
+          imagem_url: fotoUrl
+        };
+
+        const res = await fetch(`${API_URL}/carrinhos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(carrinho)
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('codigo').value = data.codigo;
+          alert(`Carrinho cadastrado com sucesso! Código gerado: ${data.codigo}`);
+        } else {
+          alert('Erro ao salvar o carrinho.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Servidor indisponível.');
+      }
+    }
+
+    // 🔍 BUSCAR (READ)
+    async function buscarCarrinho() {
+      const codigo = document.getElementById('codigo').value;
+      if (!codigo) return alert('Digite o código no campo "código" para buscar.');
+
+      try {
+        const res = await fetch(`${API_URL}/carrinhos/${codigo}`);
+        if (res.ok) {
+          const carrinho = await res.json();
+          document.getElementById('nome').value = carrinho.nome || '';
+          document.getElementById('cor').value = carrinho.cor || '';
+          document.getElementById('ano').value = carrinho.ano || '';
+          document.getElementById('tipo').value = carrinho.tipo || '';
+          
+          if (carrinho.imagem_url) {
+            urlImagemAtual = carrinho.imagem_url;
+            document.getElementById('preview').src = carrinho.imagem_url;
+          } else {
+            document.getElementById('preview').src = 'https://via.placeholder.com/320x200?text=Sem+Foto';
+          }
+        } else {
+          alert('Carrinho não encontrado.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao realizar a busca.');
+      }
+    }
+
+    // 🔄 ATUALIZAR (UPDATE)
+    async function atualizarCarrinho() {
+      const codigo = document.getElementById('codigo').value;
+      if (!codigo) return alert('Informe o código do carrinho que deseja atualizar.');
+
+      try {
+        const fotoUrl = await uploadFotoSeExiste();
+
+        const carrinho = {
+          nome: document.getElementById('nome').value,
+          cor: document.getElementById('cor').value,
+          ano: document.getElementById('ano').value,
+          tipo: document.getElementById('tipo').value,
+          imagem_url: fotoUrl
+        };
+
+        const res = await fetch(`${API_URL}/carrinhos/${codigo}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(carrinho)
+        });
+
+        if (res.ok) {
+          alert('Carrinho atualizado com sucesso!');
+        } else {
+          alert('Erro ao atualizar carrinho.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao comunicar com o servidor.');
+      }
+    }
+
+    // 🗑️ DELETAR (DELETE)
+    async function deletarCarrinho() {
+      const codigo = document.getElementById('codigo').value;
+      if (!codigo) return alert('Informe o código do carrinho a ser excluído.');
+
+      if (confirm(`Tem certeza que deseja excluir o carrinho de código ${codigo}?`)) {
+        try {
+          const res = await fetch(`${API_URL}/carrinhos/${codigo}`, {
+            method: 'DELETE'
+          });
+
+          if (res.ok) {
+            limparCampos();
+            alert('Carrinho excluído!');
+          } else {
+            alert('Erro ao deletar o registro.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro no servidor.');
+        }
+      }
+    }
+
+    function limparCampos() {
+      document.getElementById('codigo').value = '';
+      document.getElementById('nome').value = '';
+      document.getElementById('cor').value = '';
+      document.getElementById('ano').value = '';
+      document.getElementById('tipo').value = '';
+      document.getElementById('inputFoto').value = '';
+      document.getElementById('preview').src = 'https://via.placeholder.com/320x200?text=Sem+Foto';
+      urlImagemAtual = '';
+    }
+  </script>
+</body>
+</html>
